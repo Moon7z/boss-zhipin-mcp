@@ -1,0 +1,12 @@
+{
+    "mcpServers": {
+        "boss-zhipin": {
+            "command": "python",
+            "args": [
+                "-m",
+                "boss_mcp.server"
+            ],
+            "cwd": "c:\\Users\\22327\\Desktop\\BossMcp\\Project1\\src"
+        }
+    }
+}

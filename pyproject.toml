@@ -1,0 +1,28 @@
+[project]
+name = "boss-mcp"
+version = "0.1.0"
+description = "Boss直聘MCP服务器 - 自动投递简历和打招呼"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]>=1.1.0",
+    "playwright>=1.42.0",
+    "python-docx>=1.1.0",
+    "pypdf>=4.1.0",
+    "pydantic>=2.6.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+boss-mcp = "boss_mcp.server:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["boss_mcp"]
+package-dir = {"" = "src"}
+
+[tool.uv]
+dev-dependencies = []
