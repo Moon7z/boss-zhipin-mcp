@@ -105,6 +105,14 @@ async def list_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {}
             }
+        ),
+        Tool(
+            name="check_login_status",
+            description="检查BOSS直聘登录状态，返回当前是否已登录",
+            inputSchema={
+                "type": "object",
+                "properties": {}
+            }
         )
     ]
 
@@ -291,6 +299,13 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "expected_position": current_resume.expected_position,
                 "expected_city": current_resume.expected_city
             }}, ensure_ascii=False, indent=2))]
+        
+        elif name == "check_login_status":
+            if not current_client:
+                return [TextContent(type="text", text=json.dumps({"success": True, "logged_in": False, "message": "未启动浏览器客户端"}, ensure_ascii=False))]
+            
+            is_logged_in = current_client.check_login_status()
+            return [TextContent(type="text", text=json.dumps({"success": True, "logged_in": is_logged_in}, ensure_ascii=False))]
         
         else:
             return [TextContent(type="text", text=json.dumps({"success": False, "message": f"未知工具: {name}"}))]

@@ -111,6 +111,9 @@ class BossZhipinClient:
             time_window=60
         )
         self.anti_captcha = AntiCaptcha()
+        
+        self.load_cookies()
+        self.check_login_status()
     
     def _generate_random_user_agent(self) -> str:
         versions = [
@@ -227,16 +230,28 @@ class BossZhipinClient:
     
     def check_login_status(self) -> bool:
         try:
+            if not self.page:
+                return False
+            
+            self.page.goto('https://www.zhipin.com/', timeout=10000)
+            self.page.wait_for_load_state('networkidle', timeout=5000)
+            
             user_avatar = self.page.query_selector('.user-avatar')
             if user_avatar:
                 self.is_logged_in = True
                 return True
             
-            login_btn = self.page.query_selector('.btn-start')
-            if not login_btn:
+            user_avatar_img = self.page.query_selector('.header-avatar img')
+            if user_avatar_img:
                 self.is_logged_in = True
                 return True
-        except:
+            
+            nav_user = self.page.query_selector('.nav-user')
+            if nav_user:
+                self.is_logged_in = True
+                return True
+                
+        except Exception as e:
             pass
         
         self.is_logged_in = False
