@@ -114,9 +114,35 @@ class AntiDetection:
                 get: () => ['zh-CN', 'zh', 'en-US', 'en']
             });
             
+            Object.defineProperty(navigator, 'hardwareConcurrency', {
+                get: () => [4, 8, 16][Math.floor(Math.random() * 3)]
+            });
+            
+            Object.defineProperty(navigator, 'deviceMemory', {
+                get: () => [4, 8, 16][Math.floor(Math.random() * 3)]
+            });
+            
             window.chrome = {
                 runtime: {}
             };
+            
+            const originalQuery = window.navigator.permissions.query;
+            window.navigator.permissions.query = (parameters) => (
+                parameters.name === 'notifications' ?
+                    Promise.resolve({ state: Notification.permission }) :
+                    originalQuery(parameters)
+            );
+            
+            Object.defineProperty(Notification, 'permission', {
+                get: () => 'default'
+            });
+            
+            if (window.navigator.mediaDevices) {
+                window.navigator.mediaDevices.enumerateDevices = () => Promise.resolve([
+                    { deviceId: 'default', kind: 'audioinput', label: 'Microphone' },
+                    { deviceId: 'default', kind: 'videoinput', label: 'Camera' }
+                ]);
+            }
         """)
     
     def set_proxy(self, proxy_server: str, username: Optional[str] = None, password: Optional[str] = None):

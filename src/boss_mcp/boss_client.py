@@ -46,7 +46,7 @@ class BossZhipinClient:
         use_proxy: bool = False,
         proxy_list: List[str] = None,
         enable_anti_detection: bool = True,
-        max_requests_per_minute: int = 8
+        max_requests_per_minute: int = 5
     ):
         self.headless = headless
         self.use_proxy = use_proxy
@@ -67,6 +67,9 @@ class BossZhipinClient:
         self.is_logged_in = False
         self.error_count = 0
         self.max_errors = 3
+        self.risk_detected = False
+        self.action_count = 0
+        self.session_start_time = None
     
     def start(self):
         self.playwright = sync_playwright().start()
@@ -114,6 +117,8 @@ class BossZhipinClient:
         
         self.load_cookies()
         self.check_login_status()
+        
+        self.session_start_time = time.time()
     
     def _generate_random_user_agent(self) -> str:
         versions = [
@@ -257,6 +262,36 @@ class BossZhipinClient:
         self.is_logged_in = False
         return False
     
+    def _check_risk_detection(self) -> bool:
+        try:
+            risk_dialog = self.page.query_selector('.risk-dialog')
+            if risk_dialog:
+                logger.warning("检测到风控弹窗")
+                self.risk_detected = True
+                return True
+            
+            verify_dialog = self.page.query_selector('.verify-dialog')
+            if verify_dialog:
+                logger.warning("检测到验证弹窗")
+                self.risk_detected = True
+                return True
+            
+            forbidden = self.page.query_selector('.forbidden-page')
+            if forbidden:
+                logger.warning("检测到封禁页面")
+                self.risk_detected = True
+                return True
+            
+            if "captcha" in self.page.url.lower() or "verify" in self.page.url.lower():
+                logger.warning("检测到验证码页面")
+                self.risk_detected = True
+                return True
+                
+        except:
+            pass
+        
+        return False
+    
     def search_jobs(
         self,
         keyword: str,
@@ -282,6 +317,9 @@ class BossZhipinClient:
         
         if self._check_for_captcha():
             raise RuntimeError("遇到验证码，请手动处理")
+        
+        if self._check_risk_detection():
+            raise RuntimeError("检测到风控警告，请稍后再试")
         
         if self.enable_anti_detection and self.anti_detection:
             self.anti_detection.scroll_to_bottom(steps=random.randint(2, 4))
@@ -388,12 +426,29 @@ class BossZhipinClient:
         if not self.page:
             raise RuntimeError("浏览器未启动，请先调用start()")
         
+        if self.risk_detected:
+            logger.warning("检测到风控，请勿继续操作")
+            return False
+        
+        if self.action_count >= 20:
+            logger.warning("单次会话打招呼次数已达上限(20)，请明天再试")
+            return False
+        
+        session_duration = time.time() - (self.session_start_time or time.time())
+        if session_duration > 1800:
+            logger.warning("会话时长超过30分钟，请重新登录")
+            return False
+        
         job_url = f"https://www.zhipin.com/job_detail/{job.job_id}.html"
         self.page.goto(job_url)
         self._safe_delay(2, 3)
         
         if self._check_for_captcha():
             logger.warning("打招呼时遇到验证码")
+            return False
+        
+        if self._check_risk_detection():
+            logger.warning("打招呼时检测到风控")
             return False
         
         try:
@@ -425,6 +480,7 @@ class BossZhipinClient:
                 
                 self._safe_delay(1, 2)
                 logger.info(f"已向 {job.company} 的HR发送打招呼消息")
+                self.action_count += 1
                 return True
                 
         except Exception as e:
