@@ -296,7 +296,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             return [TextContent(type="text", text=json.dumps({"success": False, "message": f"未知工具: {name}"}))]
     
     except Exception as e:
-        return [TextContent(type="text", text=json.dumps({"success": False, "error": str(e)}, ensure_ascii=False))}]
+        return [TextContent(type="text", text=json.dumps({"success": False, "error": str(e)}, ensure_ascii=False))]
 
 
 async def main():
