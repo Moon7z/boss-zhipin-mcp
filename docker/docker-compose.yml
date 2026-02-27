@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  boss-mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "18061:18061"
+    volumes:
+      - ../data:/app/data
+      - ../resumes:/app/resumes
+    environment:
+      - PYTHONUNBUFFERED=1
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  boss-login:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../data:/app/data
+    entrypoint: ["python", "-m", "boss_mcp.login"]
+    stdin_open: true
+    tty: true

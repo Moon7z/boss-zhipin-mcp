@@ -10,6 +10,8 @@
 - 🤝 **自动打招呼**：批量向匹配的HR发送打招呼消息
 - 🔐 **登录管理**：支持BOSS直聘账号登录，保存cookies避免重复登录
 - 🛡️ **反机器人检测**：内置多重防护机制，降低被封禁风险
+- 🌐 **HTTP Server模式**：支持HTTP接口，兼容更多MCP客户端
+- 🐳 **Docker支持**：提供Docker镜像，快速部署
 
 ### 反检测功能
 
@@ -35,41 +37,117 @@ pip install -e .
 playwright install chromium
 ```
 
-## 配置
+## 多种运行方式
 
-1. 复制环境配置模板：
+### 方式一：STDIO模式（默认，兼容OpenClaw）
+
 ```bash
-cp .env.example .env
+# 直接运行
+python -m boss_mcp.server
 ```
 
-2. 编辑 `.env` 文件，填入BOSS直聘账号：
-```
-BOSS_PHONE=你的手机号
-BOSS_PASSWORD=你的密码
-```
-
-## 使用方法
-
-### 在OpenClaw中配置MCP
-
-在OpenClaw的配置文件中添加：
-
+在OpenClaw中配置：
 ```json
 {
   "mcpServers": {
     "boss-zhipin": {
       "command": "python",
-      "args": [
-        "-m",
-        "boss_mcp.server"
-      ],
+      "args": ["-m", "boss_mcp.server"],
       "cwd": "你的项目路径/Project1/src"
     }
   }
 }
 ```
 
-### 工具函数说明
+### 方式二：HTTP Server模式（推荐，支持更多客户端）
+
+```bash
+# 启动HTTP服务（默认端口18061）
+python -m boss_mcp.server_http
+
+# 或使用命令行
+boss-mcp-http
+```
+
+支持的客户端配置：
+
+**Claude Code CLI:**
+```bash
+claude mcp add --transport http boss-zhipin http://localhost:18061/mcp
+```
+
+**Cursor:**
+```json
+// .cursor/mcp.json
+{
+  "mcpServers": {
+    "boss-zhipin": {
+      "url": "http://localhost:18061/mcp",
+      "description": "BOSS直聘 MCP"
+    }
+  }
+}
+```
+
+**VSCode:**
+```json
+// .vscode/mcp.json
+{
+  "servers": {
+    "boss-zhipin": {
+      "url": "http://localhost:18061/mcp",
+      "type": "http"
+    }
+  }
+}
+```
+
+**Cline:**
+```json
+{
+  "boss-zhipin": {
+    "url": "http://localhost:18061/mcp",
+    "type": "streamableHttp"
+  }
+}
+```
+
+### 方式三：Docker部署（最简单）
+
+```bash
+# 拉取镜像
+docker pull xpzouying/boss-zhipin-mcp
+
+# 或使用 docker-compose
+cd docker
+docker compose up -d
+```
+
+## 登录方式
+
+### 方式一：MCP工具登录
+使用 `boss_login` 工具进行登录（会保存cookies）
+
+### 方式二：独立登录工具（推荐）
+
+```bash
+# 交互式登录
+python -m boss_mcp.login --phone 13800138000 --password yourpassword
+
+# 检查登录状态
+python -m boss_mcp.login --check
+```
+
+### 方式三：Docker环境登录
+
+```bash
+# 先启动MCP服务（会提示需要登录）
+docker compose up boss-mcp
+
+# 登录后cookies会保存到 data 目录
+```
+
+## 工具函数说明
 
 #### 1. boss_login
 登录BOSS直聘账号（支持反机器人检测）
@@ -116,29 +194,82 @@ BOSS_PASSWORD=你的密码
 - `min_score`: 最低匹配分数（默认50）
 - `max_count`: 返回的最大数量（默认20）
 
-#### 6. get_resume_info
+#### 6. check_login_status
+检查当前登录状态
+
+#### 7. get_resume_info
 获取已加载的简历信息
 
-#### 7. close_browser
+#### 8. close_browser
 关闭浏览器会话
+
+## MCP Inspector 调试
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+打开浏览器后配置：
+- URL: http://localhost:18061/mcp
+- 点击 Connect
+- 点击 List Tools 查看所有工具
+
+## 常见问题
+
+### Q: 登录显示成功但实际上没有登录？
+A:
+1. 使用非无头模式重新登录：`headless: false`
+2. 检查是否需要验证码
+3. 登录网页版BOSS直聘确认账号状态
+
+### Q: HTTP模式无法连接？
+A:
+- 非Docker环境：使用本机IP地址访问
+- Docker环境：使用 `http://host.docker.internal:18061/mcp`
+
+### Q: 发布/打招呼失败？
+A:
+1. 检查账号是否被风控限制
+2. 检查网络连接是否稳定
+3. 降低请求频率
 
 ## 示例对话
 
 ```
 用户：帮我登录BOSS直聘
-OpenClaw：调用 boss_login 工具
+AI：调用 boss_login 工具
 
 用户：解析我的简历 c:/users/xxx/简历.pdf
-OpenClaw：调用 load_resume 工具，解析并显示简历信息
+AI：调用 load_resume 工具，解析并显示简历信息
 
 用户：帮我找Python开发的工作
-OpenClaw：调用 search_jobs 工具，搜索并展示岗位列表
+AI：调用 search_jobs 工具，搜索并展示岗位列表
 
 用户：给我推荐匹配度最高的工作
-OpenClaw：调用 get_recommended_jobs 工具，展示推荐岗位
+AI：调用 get_recommended_jobs 工具，展示推荐岗位
 
 用户：向这些公司打招呼
-OpenClaw：调用 match_and_greet 工具，自动打招呼
+AI：调用 match_and_greet 工具，自动打招呼
+```
+
+## 项目结构
+
+```
+Project1/
+├── src/boss_mcp/
+│   ├── __init__.py
+│   ├── server.py          # STDIO MCP服务器
+│   ├── server_http.py      # HTTP MCP服务器
+│   ├── boss_client.py     # BOSS直聘客户端
+│   ├── anti_detection.py  # 反检测模块
+│   ├── resume_parser.py   # 简历解析
+│   └── login.py           # 独立登录工具
+├── docker/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── pyproject.toml
+├── README.md
+└── .env.example
 ```
 
 ## 注意事项
@@ -146,4 +277,12 @@ OpenClaw：调用 match_and_greet 工具，自动打招呼
 1. 首次使用需要手动登录BOSS直聘，之后会保存cookies
 2. 建议使用headless=false模式首次登录，以便处理验证码
 3. 打招呼频率不要太高，避免被封号
-4.BOSS 遵守直聘平台规则，不要滥用自动化功能
+4. 遵守BOSS直聘平台规则，不要滥用自动化功能
+5. 同一账号不能在多个网页端同时登录
+
+## 技术栈
+
+- Python 3.10+
+- Playwright (浏览器自动化)
+- FastAPI (HTTP Server)
+- MCP Protocol
