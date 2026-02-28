@@ -11,6 +11,42 @@ from boss_mcp.resume_parser import parse_resume
 from boss_mcp.boss_client import BossZhipinClient, JobInfo, ResumeData
 
 
+def _generate_match_reason(job: JobInfo, resume: ResumeData, full_jd: str = "") -> str:
+    reasons = []
+    combined_text = f"{job.title} {job.description} {full_jd}".lower()
+    resume_skills_lower = [s.lower() for s in resume.skills]
+    
+    matched = [s for s in resume_skills_lower if s in combined_text]
+    if matched:
+        reasons.append(f"技能匹配: {', '.join(matched[:5])}")
+    
+    exp_numbers = ''.join(filter(str.isdigit, job.experience))
+    if exp_numbers and resume.experience_years > 0:
+        try:
+            job_exp = int(exp_numbers)
+            if abs(job_exp - resume.experience_years) <= 1:
+                reasons.append(f"工作经验匹配: {job_exp}年要求")
+            elif job_exp <= resume.experience_years:
+                reasons.append(f"经验要求适中: {job_exp}年")
+        except:
+            pass
+    
+    if resume.education:
+        if job.education and job.education in ['本科', '硕士', '博士']:
+            reasons.append(f"学历要求: {job.education}")
+    
+    if resume.expected_city and resume.expected_city in job.city:
+        reasons.append(f"城市匹配: {job.city}")
+    
+    if '急招' in job.title or '急聘' in job.title:
+        reasons.append("急招岗位")
+    
+    if not reasons:
+        reasons.append("综合条件较为匹配")
+    
+    return "; ".join(reasons)
+
+
 app = Server("boss-zhipin-mcp")
 
 current_client: BossZhipinClient = None
@@ -222,7 +258,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             
             filtered_jobs = []
             for job in jobs:
-                score = current_client.calculate_match_score(job, current_resume)
+                full_jd = current_client._extract_jd_full(job.job_id)
+                score = current_client.calculate_match_score(job, current_resume, full_jd)
                 if score >= min_score:
                     filtered_jobs.append(job)
                     if len(filtered_jobs) >= max_count:
@@ -252,7 +289,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             
             job_scores = []
             for job in jobs:
-                score = current_client.calculate_match_score(job, current_resume)
+                full_jd = current_client._extract_jd_full(job.job_id)
+                score = current_client.calculate_match_score(job, current_resume, full_jd)
                 if score >= min_score:
                     job_scores.append({
                         "job": {
@@ -264,9 +302,11 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                             "experience": job.experience,
                             "education": job.education,
                             "hr_name": job.hr_name,
-                            "hr_active_status": job.hr_active_status
+                            "hr_active_status": job.hr_active_status,
+                            "description": (job.description + " " + full_jd)[:500]
                         },
-                        "match_score": score
+                        "match_score": score,
+                        "match_reason": _generate_match_reason(job, current_resume, full_jd)
                     })
             
             job_scores.sort(key=lambda x: x["match_score"], reverse=True)

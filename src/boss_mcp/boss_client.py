@@ -422,6 +422,112 @@ class BossZhipinClient:
         
         return min(score, 100)
     
+    def _extract_jd_full(self, job_id: str) -> str:
+        try:
+            job_url = f"https://www.zhipin.com/job_detail/{job_id}.html"
+            self.page.goto(job_url, timeout=10000)
+            self._safe_delay(1, 2)
+            
+            jd_text = ""
+            
+            job_detail = self.page.query_selector('.job-detail')
+            if job_detail:
+                desc_elem = job_detail.query_selector('.job-desc')
+                if desc_elem:
+                    jd_text = desc_elem.inner_text()
+                
+                if not jd_text:
+                    requirements = job_detail.query_selector_all('.requirement-item')
+                    for req in requirements:
+                        jd_text += req.inner_text() + " "
+            
+            return jd_text.strip()
+        except Exception as e:
+            logger.debug(f"获取JD失败: {e}")
+            return ""
+    
+    def calculate_match_score(self, job: JobInfo, resume: ResumeData, full_jd: str = "") -> int:
+        score = 0
+        max_score = 100
+        
+        combined_text = f"{job.title} {job.description} {full_jd}".lower()
+        
+        resume_skills = [s.lower() for s in resume.skills]
+        matched_skills = []
+        missing_skills = []
+        
+        for skill in resume_skills:
+            if skill in combined_text:
+                score += 15
+                matched_skills.append(skill)
+            else:
+                missing_skills.append(skill)
+        
+        score += len(matched_skills) * 5
+        if len(matched_skills) >= 3:
+            score += 10
+        
+        keywords_map = {
+            'python': ['python', 'django', 'flask', 'fastapi', 'tornado'],
+            'java': ['java', 'spring', 'springboot', 'mybatis'],
+            '前端': ['vue', 'react', 'angular', 'javascript', 'typescript', 'html', 'css', '前端'],
+            '后端': ['后端', 'api', 'rest', 'grpc', '微服务'],
+            '数据库': ['mysql', 'redis', 'mongodb', 'postgresql', 'sql', '数据库'],
+            '算法': ['算法', '机器学习', '深度学习', 'ai', '人工智能', 'nlp', 'cv'],
+            '全栈': ['全栈', 'fullstack', '前端', '后端'],
+            '测试': ['测试', '自动化', 'selenium', 'unittest', 'pytest'],
+            '运维': ['运维', 'docker', 'kubernetes', 'k8s', 'linux', 'devops'],
+        }
+        
+        for category, keywords in keywords_map.items():
+            category_match = 0
+            for kw in keywords:
+                if kw in combined_text:
+                    category_match = 1
+                    break
+            if category_match:
+                for skill in resume_skills:
+                    if any(kw in skill for kw in keywords):
+                        score += 5
+        
+        if resume.experience_years > 0:
+            exp_numbers = ''.join(filter(str.isdigit, job.experience))
+            if exp_numbers:
+                try:
+                    job_exp = int(exp_numbers)
+                    exp_diff = abs(job_exp - resume.experience_years)
+                    if exp_diff == 0:
+                        score += 20
+                    elif exp_diff <= 1:
+                        score += 15
+                    elif exp_diff <= 2:
+                        score += 10
+                    elif exp_diff <= 3:
+                        score += 5
+                except:
+                    pass
+        
+        if resume.education:
+            edu_order = {'中专': 1, '高中': 2, '大专': 3, '本科': 4, '硕士': 5, '博士': 6}
+            if job.education in edu_order and resume.education in edu_order:
+                if edu_order[job.education] <= edu_order[resume.education]:
+                    score += 15
+                else:
+                    score -= 10
+        
+        if resume.expected_city and resume.expected_city in job.city:
+            score += 10
+        
+        if '急招' in job.title or '急聘' in job.title:
+            score += 5
+        
+        if '面试' in job.description or '面试' in full_jd:
+            score += 5
+        
+        score = max(0, min(score, max_score))
+        
+        return score
+    
     def greet_hr(self, job: JobInfo, resume: ResumeData, custom_message: str = "") -> bool:
         if not self.page:
             raise RuntimeError("浏览器未启动，请先调用start()")
