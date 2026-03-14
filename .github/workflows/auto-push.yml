@@ -1,0 +1,18 @@
+name: Auto Push to GitHub
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Push to GitHub
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git push origin master
