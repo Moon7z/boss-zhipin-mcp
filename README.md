@@ -196,7 +196,7 @@ MIT License - 详见 [LICENSE](LICENSE)
 
 - GitHub Issues: [提交问题](https://github.com/Moon7z/boss-zhipin-mcp/issues)
 - 微信交流群: 扫码加入
-- Email: moon7z@example.com
+- Email: yyoungmoon717@gmail.com
 
 ---
 
