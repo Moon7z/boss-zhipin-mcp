@@ -1,0 +1,27 @@
+# Boss直聘AI助手 - 依赖
+
+# 核心框架
+fastmcp>=0.4.0
+mcp>=1.0.0
+
+# Web框架
+fastapi>=0.104.0
+uvicorn>=0.24.0
+starlette>=0.27.0
+
+# 浏览器自动化
+playwright>=1.40.0
+
+# HTTP请求
+aiohttp>=3.9.0
+requests>=2.31.0
+
+# 数据处理
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+
+# 加密（BOSS直聘需要）
+pycryptodome>=3.20.0
+
+# 工具库
+python-dateutil>=2.8.0
