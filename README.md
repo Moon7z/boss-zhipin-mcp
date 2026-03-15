@@ -98,14 +98,6 @@ AI: 已向10个高匹配岗位发送个性化消息
 
 ---
 
-## 🎬 演示视频
-
-[![演示视频](docs/images/demo_thumbnail.png)](https://www.bilibili.com/video/BV1xx411c7mD)
-
-点击查看完整演示 👆
-
----
-
 ## 🏗️ 技术架构
 
 ```
