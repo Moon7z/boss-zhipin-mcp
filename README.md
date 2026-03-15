@@ -184,19 +184,9 @@ MIT License - 详见 [LICENSE](LICENSE)
 
 ---
 
-## 💖 支持项目
-
-如果这个项目帮到了你，请给个 ⭐ Star！
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Moon7z/boss-zhipin-mcp&type=Date)](https://star-history.com/#Moon7z/boss-zhipin-mcp&Date)
-
----
-
 ## 📞 联系我们
 
 - GitHub Issues: [提交问题](https://github.com/Moon7z/boss-zhipin-mcp/issues)
-- 微信交流群: 扫码加入
-- Email: yyoungmoon717@gmail.com
 
 ---
 
