@@ -145,13 +145,9 @@ AI: 已向10个高匹配岗位发送个性化消息
 
 ---
 
-## 🌟 用户反馈
+## ⭐ Star History
 
-> "用了一周，收到了8个面试邀请，效率真的高！" - @程序员小王
-
-> "AI生成的打招呼消息比我写的好多了，HR回复率明显提升" - @Python开发者
-
-> "反爬功能很强，用了一个月账号还很安全" - @全栈工程师
+[![Star History Chart](https://api.star-history.com/svg?repos=Moon7z/boss-zhipin-mcp&type=Date)](https://star-history.com/#Moon7z/boss-zhipin-mcp&Date)
 
 ---
 
